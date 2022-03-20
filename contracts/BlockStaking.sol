@@ -1,15 +1,17 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
+
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Block is ERC20, Ownable {
     
-    uint public buyPrice = 0.01 ether;
+    uint public buyPrice = 1 ether;
 
     uint rewardPercent;
+
+    uint public tokenRate;
 
     mapping(address => uint) public userStake;
 
@@ -23,15 +25,17 @@ contract Block is ERC20, Ownable {
         buyPrice = newBuyPrice;
     }
 
+    function modifyTokenRate(uint newTokenRate) public onlyOwner(){
+        tokenRate = newTokenRate;
+    }
+
     function setRewardPercent(uint percent) public onlyOwner() {
         rewardPercent = (percent*1000)/100;
-        console.log(rewardPercent);
-        console.log(percent);
     }
 
     function buyToken(address receiver) public payable {
-        require(msg.value > 0, "insufficentBalance");
-        uint amount = msg.value*1000e18;
+        require(msg.value >= buyPrice, "InSufficientBalance");
+        uint amount = msg.value*tokenRate*10**18;
         _mint(receiver, amount);
     }
 
@@ -41,20 +45,18 @@ contract Block is ERC20, Ownable {
         _burn(_msgSender(), amount);
         currentStake += amount;
         userStake[_msgSender()] = currentStake;
-        rewardTime[_msgSender()] = block.timestamp;
     }
 
     function reward(address receiver) internal {
         uint currentStake = userStake[receiver];
         uint userReward = currentStake * rewardPercent;
-        console.log(userReward);
         _mint(receiver, userReward/1000);
     }
 
     function claimReward() public {
-        require(block.timestamp >= rewardTime[msg.sender], "Cannot claim stake");
+       require(rewardTime[msg.sender] >= rewardTime[_msgSender()] + 604800, "Cannot claim reward");
         reward(_msgSender());
-        rewardTime[_msgSender()] += 604800; // 7 days in second
+        rewardTime[_msgSender()] = block.timestamp;
     }
 
     function unStake( uint amount) public {
