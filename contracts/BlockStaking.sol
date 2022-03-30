@@ -34,7 +34,7 @@ contract Block is ERC20, Ownable {
     }
 
     function buyToken(address receiver) public payable {
-        require(msg.value >= buyPrice, "InSufficientBalance");
+        require(msg.value >= 0, "InSufficientBalance");
         uint amount = msg.value*tokenRate*10**18;
         _mint(receiver, amount);
     }
